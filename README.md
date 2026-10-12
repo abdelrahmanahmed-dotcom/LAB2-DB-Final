@@ -5,7 +5,7 @@
 | Name | ID | Did what |
 |------|----|----------|
 | Amr Khaled AbdElrahim |  2304078 | backend |
-| Abdelrahman Ahmed Elsayed | 2304078 | frontend & database |
+| Abdelrahman Ahmed Elsayed | 2304056 | frontend & database |
 
 ## 2. Technology
 
