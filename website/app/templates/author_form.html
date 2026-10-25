@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}{{ 'Edit author' if author else 'Add an author' }}{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>{{ 'Edit author' if author else 'Add an author' }}</h1>
+  <form method="post" enctype="multipart/form-data" novalidate data-validate
+        action="{{ url_for('library.edit_author', author_id=author.author_id) if author else url_for('library.add_author') }}">
+    {{ field("name", "Name", value=form.name, error=errors.name,
+             required_msg="Name is required", max=100, max_msg="Name is too long (100 characters at most)") }}
+    {{ field("country", "Country", value=form.country, error=errors.country,
+             required_msg="Country is required", max=50, max_msg="Country is too long (50 characters at most)") }}
+
+    {# [Bonus] author photo #}
+    <div class="field">
+      <label for="image">Photo (optional)</label>
+      {% if author and author.image %}
+      <img class="thumb thumb-big thumb-round" src="{{ url_for('static', filename='uploads/' ~ author.image) }}" alt="Current photo">
+      <label class="check-line"><input type="checkbox" name="remove_image" value="1"> Remove the current photo</label>
+      {% endif %}
+      <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+      <p class="error">{{ errors.image }}</p>
+    </div>
+
+    <button class="btn btn-primary btn-block" type="submit">{{ 'Save' if author else 'Add author' }}</button>
+  </form>
+  <p class="muted"><a href="{{ url_for('library.index') }}">Back to the library</a></p>
+</section>
+{% endblock %}

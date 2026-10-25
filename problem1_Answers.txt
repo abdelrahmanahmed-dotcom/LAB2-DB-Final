@@ -1,0 +1,152 @@
+LAB 3 - PROBLEM 1 - Answers
+Introduction to Database Systems, Alexandria National University (Fall 2026)
+Student: Abdelrahman (ID 2304056)
+
+How the answers were produced
+  mysql -u root -p < problem1_DDL.sql      (build the company database)
+  mysql -u root -p < problem1_DML.sql      (insert the rows)
+  mysql -u root -p company                 (then the commands below, typed by hand)
+The times in brackets, for example (0.01 sec), can be different on another machine.
+Q1.1 and Q1.2 are typed one after the other in the same mysql session.
+
+==============================================================================
+Q1.1  Insert a DEPARTMENT row that references an EMPLOYEE row, then try to delete
+      the referenced employee. What will happen?
+==============================================================================
+
+mysql> INSERT INTO department (Dnumber, Dname, mgr_ssn, mgr_start_date) VALUES (4, 'Sales', '100000006', '2024-02-01');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> DELETE FROM employee WHERE ssn = '100000006';
+ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails (`company`.`department`, CONSTRAINT `fk_department_mgr` FOREIGN KEY (`mgr_ssn`) REFERENCES `employee` (`ssn`))
+
+mysql> SELECT ssn, fname, lname FROM employee WHERE ssn = '100000006';
++-----------+-------+---------+
+| ssn       | fname | lname   |
++-----------+-------+---------+
+| 100000006 | Nour  | Ibrahim |
++-----------+-------+---------+
+1 row in set (0.00 sec)
+
+Answer: MySQL refuses the DELETE (error 1451) and nothing is deleted: the SELECT above
+still finds the employee. Department 4 uses employee 100000006 as its manager
+(department.mgr_ssn is a foreign key to employee.ssn). Deleting that employee would
+leave a department whose manager does not exist, which breaks referential integrity.
+The employee can be deleted only after no department points at it any more, for example
+after UPDATE department SET mgr_ssn = NULL WHERE Dnumber = 4; (or after deleting
+department 4).
+
+==============================================================================
+Q1.2  Insert a PROJECT row that references a DEPARTMENT that does not exist yet.
+      What will happen?
+==============================================================================
+
+mysql> SELECT Dnumber, Dname FROM department WHERE Dnumber = 99;
+Empty set (0.00 sec)
+
+mysql> INSERT INTO project (Pnumber, Pname, Plocation, Dno) VALUES (4, 'ProductZ', 'Cairo', 99);
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`company`.`project`, CONSTRAINT `fk_project_dept` FOREIGN KEY (`Dno`) REFERENCES `department` (`Dnumber`))
+
+mysql> SELECT Pnumber, Pname FROM project WHERE Pnumber = 4;
+Empty set (0.00 sec)
+
+Answer: MySQL refuses the INSERT (error 1452) and no row is added (the second SELECT is
+empty). A foreign key value must be NULL or equal to an existing primary key value of the
+referenced table, and department 99 does not exist. (project.Dno is NOT NULL, so NULL is
+not possible here either.) After the department exists the same INSERT works:
+
+mysql> INSERT INTO department (Dnumber, Dname, mgr_ssn, mgr_start_date) VALUES (99, 'Maintenance', '100000005', '2024-03-01');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> INSERT INTO project (Pnumber, Pname, Plocation, Dno) VALUES (4, 'ProductZ', 'Cairo', 99);
+Query OK, 1 row affected (0.01 sec)
+
+==============================================================================
+Q1.3  If mgr_ssn and Dno are both NOT NULL, how will you insert the first row in
+      EMPLOYEE or DEPARTMENT?
+==============================================================================
+
+Problem: the two tables point at each other (employee.Dno -> department.Dnumber and
+department.mgr_ssn -> employee.ssn). If both columns are NOT NULL, an employee needs an
+existing department and a department needs an existing employee, so neither first row
+can be inserted. To show it I use a small scratch database, company_nn, so that the
+company database stays untouched. It has the same circular foreign keys, both columns
+NOT NULL (only the columns needed for the demo):
+
+mysql> DROP DATABASE IF EXISTS company_nn;
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+mysql> CREATE DATABASE company_nn;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE company_nn;
+Database changed
+
+mysql> CREATE TABLE employee (ssn CHAR(9) NOT NULL, fname VARCHAR(30) NOT NULL, Dno INT NOT NULL, PRIMARY KEY (ssn));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> CREATE TABLE department (Dnumber INT NOT NULL, Dname VARCHAR(50) NOT NULL, mgr_ssn CHAR(9) NOT NULL, PRIMARY KEY (Dnumber), CONSTRAINT fk_nn_dept_mgr FOREIGN KEY (mgr_ssn) REFERENCES employee (ssn));
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> ALTER TABLE employee ADD CONSTRAINT fk_nn_emp_dept FOREIGN KEY (Dno) REFERENCES department (Dnumber);
+Query OK, 0 rows affected (0.03 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+Try the employee first:
+
+mysql> INSERT INTO employee (ssn, fname, Dno) VALUES ('100000001', 'Ahmed', 1);
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`company_nn`.`employee`, CONSTRAINT `fk_nn_emp_dept` FOREIGN KEY (`Dno`) REFERENCES `department` (`Dnumber`))
+
+Try the department first:
+
+mysql> INSERT INTO department (Dnumber, Dname, mgr_ssn) VALUES (1, 'Engineering', '100000001');
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`company_nn`.`department`, CONSTRAINT `fk_nn_dept_mgr` FOREIGN KEY (`mgr_ssn`) REFERENCES `employee` (`ssn`))
+
+Both orders fail. Solution: switch the foreign key check off only for these two
+inserts, then switch it on again:
+
+mysql> SET FOREIGN_KEY_CHECKS = 0;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> INSERT INTO employee (ssn, fname, Dno) VALUES ('100000001', 'Ahmed', 1);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> INSERT INTO department (Dnumber, Dname, mgr_ssn) VALUES (1, 'Engineering', '100000001');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SET FOREIGN_KEY_CHECKS = 1;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> SELECT ssn, fname, Dno FROM employee;
++-----------+-------+-----+
+| ssn       | fname | Dno |
++-----------+-------+-----+
+| 100000001 | Ahmed |   1 |
++-----------+-------+-----+
+1 row in set (0.00 sec)
+
+mysql> SELECT Dnumber, Dname, mgr_ssn FROM department;
++---------+-------------+-----------+
+| Dnumber | Dname       | mgr_ssn   |
++---------+-------------+-----------+
+|       1 | Engineering | 100000001 |
++---------+-------------+-----------+
+1 row in set (0.00 sec)
+
+The check is on again, so a wrong value is refused as before:
+
+mysql> INSERT INTO employee (ssn, fname, Dno) VALUES ('100000002', 'Mona', 7);
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`company_nn`.`employee`, CONSTRAINT `fk_nn_emp_dept` FOREIGN KEY (`Dno`) REFERENCES `department` (`Dnumber`))
+
+Answer: the first row cannot be inserted while both columns are NOT NULL and the foreign
+keys are checked. Ways out:
+  1. SET FOREIGN_KEY_CHECKS = 0; insert the first employee and the first department;
+     SET FOREIGN_KEY_CHECKS = 1;  (shown above; both rows are consistent with each other).
+  2. Create the tables without the circular foreign key, insert both first rows, and add
+     the foreign key afterwards with ALTER TABLE ... ADD FOREIGN KEY (this is why the
+     lab says that a foreign key can be added later with ALTER TABLE; MySQL checks that
+     the rows already inserted respect it).
+  3. Allow NULL in one of the two columns. This is what my company database does
+     (Dno and mgr_ssn accept NULL): first insert the employees with Dno = NULL, then the
+     departments with their managers, then UPDATE the employees' Dno
+     (see problem1_DML.sql).

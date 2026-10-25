@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Library{% endblock %}
+{% block main_class %}wide{% endblock %}
+{% block content %}
+{# [F2.1] two tables: the books (with the author_id of each book) and the authors #}
+<section class="card">
+  <div class="section-head">
+    <h1>Books</h1>
+    <a class="btn btn-primary btn-small" href="{{ url_for('library.add_book') }}">Add a book</a>  {# [F2.2] #}
+  </div>
+  <p class="muted">{{ books|length }} book(s)</p>
+
+  {% if not books %}
+  <p class="empty">No books yet. Add the first one.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>book_id</th><th>Cover</th><th>title</th><th>price</th><th>author_id</th><th>Author</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for b in books %}
+        <tr>
+          <td>{{ b.book_id }}</td>
+          <td>
+            {% if b.image %}<img class="thumb" src="{{ url_for('static', filename='uploads/' ~ b.image) }}" alt="Cover of {{ b.title }}">
+            {% else %}<span class="thumb thumb-empty" aria-hidden="true">{{ b.title[:1]|upper }}</span>{% endif %}
+          </td>
+          <td>{{ b.title }}</td>
+          <td>{{ '%.2f'|format(b.price) }}</td>
+          <td>{{ b.author_id }}</td>
+          <td>{{ author_names.get(b.author_id, '') }}</td>
+          <td class="actions">
+            <a class="btn btn-small" href="{{ url_for('library.edit_book', book_id=b.book_id) }}">Edit</a>  {# [F2.3] #}
+            {# [F2.4] remove a book (the browser asks "are you sure?" first) #}
+            <form method="post" action="{{ url_for('library.delete_book', book_id=b.book_id) }}"
+                  data-confirm="Delete the book &quot;{{ b.title }}&quot;?">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <div class="section-head">
+    <h1>Authors</h1>
+    <a class="btn btn-primary btn-small" href="{{ url_for('library.add_author') }}">Add an author</a>  {# [F2.2] #}
+  </div>
+  <p class="muted">{{ authors|length }} author(s)</p>
+
+  {% if not authors %}
+  <p class="empty">No authors yet. Add the first one.</p>
+  {% else %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr><th>author_id</th><th>Photo</th><th>name</th><th>country</th><th>Books</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for a in authors %}
+        {% set n = book_counts.get(a.author_id, 0) %}
+        <tr>
+          <td>{{ a.author_id }}</td>
+          <td>
+            {% if a.image %}<img class="thumb thumb-round" src="{{ url_for('static', filename='uploads/' ~ a.image) }}" alt="Photo of {{ a.name }}">
+            {% else %}<span class="thumb thumb-round thumb-empty" aria-hidden="true">{{ a.name[:1]|upper }}</span>{% endif %}
+          </td>
+          <td>{{ a.name }}</td>
+          <td>{{ a.country }}</td>
+          <td>{{ n }}</td>
+          <td class="actions">
+            <a class="btn btn-small" href="{{ url_for('library.edit_author', author_id=a.author_id) }}">Edit</a>  {# [F2.3] #}
+            {# [F2.5] remove an author: MySQL deletes the author's books too (ON DELETE CASCADE) #}
+            <form method="post" action="{{ url_for('library.delete_author', author_id=a.author_id) }}"
+                  data-confirm="Delete the author &quot;{{ a.name }}&quot;{% if n %} and their {{ n }} book(s){% endif %}?">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

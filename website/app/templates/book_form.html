@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}{{ 'Edit book' if book else 'Add a book' }}{% endblock %}
+{% block content %}
+<section class="card auth-card">
+  <h1>{{ 'Edit book' if book else 'Add a book' }}</h1>
+
+  {% if not authors %}
+  {# a book needs an author (foreign key), so there must be at least one #}
+  <p class="empty">There are no authors yet. A book needs an author, so add one first.</p>
+  <a class="btn btn-primary btn-block" href="{{ url_for('library.add_author') }}">Add an author</a>
+  {% else %}
+  {# enctype: needed to upload the cover picture [Bonus] #}
+  <form method="post" enctype="multipart/form-data" novalidate data-validate
+        action="{{ url_for('library.edit_book', book_id=book.book_id) if book else url_for('library.add_book') }}">
+    {{ field("title", "Title", value=form.title, error=errors.title,
+             required_msg="Title is required", max=200, max_msg="Title is too long (200 characters at most)") }}
+    {{ field("price", "Price", value=form.price, error=errors.price,
+             required_msg="Price is required", price=true) }}
+
+    <div class="field">
+      <label for="author_id">Author</label>
+      <select id="author_id" name="author_id" data-required="Author is required"
+              {% if errors.author_id %}class="invalid"{% endif %}>
+        <option value="">Choose an author</option>
+        {% for a in authors %}
+        <option value="{{ a.author_id }}" {% if form.author_id|string == a.author_id|string %}selected{% endif %}>{{ a.author_id }} · {{ a.name }}</option>
+        {% endfor %}
+      </select>
+      <p class="error">{{ errors.author_id }}</p>
+    </div>
+
+    {# [Bonus] cover picture #}
+    <div class="field">
+      <label for="image">Cover picture (optional)</label>
+      {% if book and book.image %}
+      <img class="thumb thumb-big" src="{{ url_for('static', filename='uploads/' ~ book.image) }}" alt="Current cover">
+      <label class="check-line"><input type="checkbox" name="remove_image" value="1"> Remove the current cover</label>
+      {% endif %}
+      <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+      <p class="error">{{ errors.image }}</p>
+    </div>
+
+    <button class="btn btn-primary btn-block" type="submit">{{ 'Save' if book else 'Add book' }}</button>
+  </form>
+  {% endif %}
+  <p class="muted"><a href="{{ url_for('library.index') }}">Back to the library</a></p>
+</section>
+{% endblock %}
