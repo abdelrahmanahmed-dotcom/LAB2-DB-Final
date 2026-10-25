@@ -56,6 +56,31 @@ mysql -u root -p company                 # type queries by hand (see problem1_An
 2. Go to the website folder, create a virtual environment and install the packages:
    ```bash
    cd website
+# Lab 2: Login & To-Do Application
+
+## 1. Team
+
+| Name | ID | Did what |
+|------|----|----------|
+| Amr Khaled AbdElrahim |  2304078 | backend |
+| Abdelrahman Ahmed Elsayed | 2304056 | frontend & database |
+
+## 2. Technology
+
+- **Back end:** Python 3 + Flask (blueprints, sessions), PyMySQL (plain SQL, no ORM), bcrypt
+- **Front end:** HTML (Jinja templates), CSS (own stylesheet), JavaScript (validation)
+- **Database:** MySQL, database `registration`, tables `users` and `todos`
+
+## 3. How to run it (from an empty machine)
+
+1. Install **Python 3.10+**, **MySQL Server** and **Git**.
+2. Get the code and enter the folder:
+   ```bash
+   git clone https://github.com/abdelrahmanahmed-dotcom/LAB2-DB-Final.git
+   cd db-lab2
+   ```
+3. Create a virtual environment and install the packages:
+   ```bash
    python -m venv venv
    source venv/bin/activate        # Windows: venv\Scripts\activate
    pip install -r requirements.txt
@@ -136,6 +161,56 @@ Layers: **routes** (HTTP) call **validators** (rules), then **repositories** (SQ
 SQL exists only in `website/app/repositories/`. Screenshots of Lab 2 are in `website/screenshots/`.
 
 ### Lab 2 answers
+4. Build the database (this drops and recreates `registration`):
+   ```bash
+   mysql -u root -p < database/schema.sql
+   ```
+5. Copy the settings file and put your MySQL password in it:
+   ```bash
+   cp .env.example .env            # Windows: copy .env.example .env
+   ```
+6. Start the server:
+   ```bash
+   python run.py
+   ```
+7. Open <http://127.0.0.1:5000>.
+
+Optional: `python -m pytest` runs the automated tests (they do not need MySQL).
+
+## 4. Features
+
+| # | Feature | Status |
+|---|---------|--------|
+| R1 | Register (name, e-mail, password, confirm), `Email Already Exists`, auto login | Done |
+| R2 | Login with one single error message, logout | Done |
+| R3 | Private list, redirect to login, newest first | Done |
+| R4 | Add a to-do | Done |
+| R5 | Edit a title | Done |
+| R6 | Mark done / not done | Done |
+| R7 | Delete with "are you sure?" | Done |
+| R8 | Validation in the browser and on the server with the exact messages | Done |
+| R9 | bcrypt hashes, parameterised queries only, `user_id` from the session | Done |
+| R10 | Consistent, responsive UI with feedback and empty state | Done |
+| Bonus | Due dates (with overdue highlight) | Done |
+| Bonus | Filters (All / Open / Done) | Done |
+| Bonus | Search by title | Done |
+| Bonus | Open-to-do counter | Done |
+| Bonus | Dark mode | Done |
+| Bonus | Automated tests (30) | Done |
+
+**Note about the lab's queries (R9):** the bonus *due date* adds one optional column, so the lab's `INSERT`
+and the title `UPDATE` carry `due_date` too. Everything else is unchanged, and `AND user_id = ?` is
+still in every `UPDATE` and `DELETE`. Search and filters use no extra SQL (they work on the list returned
+by the lab's `SELECT`).
+
+The exact file and line of every requirement is in [REQUIREMENTS_MAP.md](REQUIREMENTS_MAP.md).
+
+### Project structure
+
+```
+4. `screenshots/phone.png` - the site in a phone-sized window (about 360 px)
+
+## 6. Answers
 
 **(a) Why do UPDATE and DELETE contain `AND user_id = ?`, and what changes if you remove it?**
 The to-do number comes from the browser, so anybody can send somebody else's number. `AND user_id = ?` uses the id of the logged-in user (taken from the session), so a to-do that is not yours matches zero rows and nothing changes. Without it, any logged-in user could edit, mark or delete other users' to-dos just by changing the number.
